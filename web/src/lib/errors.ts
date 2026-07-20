@@ -43,11 +43,18 @@ export function mapWalletError(err: unknown): DoqtriError {
       "Account missing or unfunded on testnet. Fund it via Friendbot, then retry.",
     );
   }
-  if (m.includes("already") && m.includes("exist")) {
+  if (
+    (m.includes("already") && m.includes("exist")) ||
+    m.includes("documentalreadyexists") ||
+    m.includes("#1")
+  ) {
     return new DoqtriError(
       "ALREADY_EXISTS",
-      "Document already registered — try Update hash instead.",
+      "Document already registered — updating instead.",
     );
+  }
+  if (m.includes("simulation") && m.includes("fail")) {
+    return new DoqtriError("SIM_FAILED", raw || "Simulation failed");
   }
   return new DoqtriError("UNKNOWN", raw || "Something went wrong");
 }

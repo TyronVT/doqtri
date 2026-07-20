@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import webpack from "webpack";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -12,7 +13,7 @@ const nextConfig: NextConfig = {
       buffer: require.resolve("buffer/"),
     };
     config.plugins.push(
-      new (require("webpack").ProvidePlugin)({
+      new webpack.ProvidePlugin({
         Buffer: ["buffer", "Buffer"],
       }),
     );

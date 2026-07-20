@@ -162,3 +162,50 @@ fn test_auth_is_required() {
     let result = client.try_register_document(&owner, &doc_id, &hash(&env, 1));
     assert!(result.is_err());
 }
+
+/// Mirrors the UI write path: register → update hash → set_node_status.
+#[test]
+fn test_ui_write_path() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doc-ui-path");
+    let node_id = String::from_str(&env, "first-milestone");
+
+    let v1 = client.register_document(&owner, &doc_id, &hash(&env, 0x11));
+    assert_eq!(v1, 1);
+
+    // Idempotent retry surface: duplicate register must fail with AlreadyExists
+    // (JS client maps this to update_document).
+    let dup = client.try_register_document(&owner, &doc_id, &hash(&env, 0x22));
+    assert_eq!(dup, Err(Ok(Error::DocumentAlreadyExists)));
+
+    let v2 = client.update_document(&doc_id, &hash(&env, 0x22));
+    assert_eq!(v2, 2);
+
+    client.set_node_status(
+        &doc_id,
+        &node_id,
+        &NodeStatus::Building,
+        &String::from_str(&env, "n8n"),
+        &String::from_str(&env, "wf_draft"),
+    );
+    client.set_node_status(
+        &doc_id,
+        &node_id,
+        &NodeStatus::Verified,
+        &String::from_str(&env, "n8n"),
+        &String::from_str(&env, "wf_live"),
+    );
+
+    let doc = client.get_document(&doc_id);
+    assert_eq!(doc.version, 2);
+    assert_eq!(doc.node_count, 1);
+    assert_eq!(doc.content_hash, hash(&env, 0x22));
+
+    let node = client.get_node(&doc_id, &node_id);
+    assert_eq!(node.status, NodeStatus::Verified);
+    assert_eq!(node.tool, String::from_str(&env, "n8n"));
+    assert_eq!(node.artifact_ref, String::from_str(&env, "wf_live"));
+}

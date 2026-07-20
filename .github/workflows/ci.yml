@@ -14,7 +14,7 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Contract tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -68,3 +68,49 @@ jobs:
           name: doqtri-registry-wasm
           path: target/wasm32v1-none/release/doqtri_registry.wasm
           if-no-files-found: error
+
+  web:
+    name: Web build + Playwright
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_PUBLIC_CONTRACT_ID: CCUNGHIVB5Y4Z3VQFGE4JB2K2ZKEALZYFDEH2AXWRFHJ4UEKGYDV66NQ
+      NEXT_PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      NEXT_PUBLIC_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+      NEXT_PUBLIC_EXPERT_TX_BASE: https://stellar.expert/explorer/testnet/tx
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke — vault gate
+        run: npx playwright test e2e/vault-gate.spec.ts
+
+      - name: Build with E2E wallet stub
+        env:
+          NEXT_PUBLIC_E2E_ADDRESS: GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF
+        run: npm run build
+
+      - name: Smoke — create doc
+        env:
+          NEXT_PUBLIC_E2E_ADDRESS: GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF
+          PLAYWRIGHT_E2E: "1"
+        run: npx playwright test e2e/create-doc.spec.ts
