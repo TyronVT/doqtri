@@ -1,19 +1,19 @@
-import { CONTRACT as FALLBACK } from "@/data/demo-map";
-
 const isProd = process.env.NODE_ENV === "production";
 
 function required(name: string, fallback?: string): string {
-  const v = process.env[name] ?? fallback;
-  if (!v) {
+  const fromEnv = process.env[name];
+  if (fromEnv) return fromEnv;
+  if (isProd || fallback === undefined) {
     throw new Error(
       `Missing ${name}. Set it in web/.env.local (see .env.example).`,
     );
   }
-  if (isProd && !process.env[name] && fallback) {
-    console.warn(`[doqtri] ${name} unset in production — using built-in fallback`);
-  }
-  return v;
+  return fallback;
 }
+
+/** Dev-only fallback — production requires NEXT_PUBLIC_CONTRACT_ID */
+const DEV_CONTRACT =
+  "CCUNGHIVB5Y4Z3VQFGE4JB2K2ZKEALZYFDEH2AXWRFHJ4UEKGYDV66NQ";
 
 export const RPC_URL = required(
   "NEXT_PUBLIC_SOROBAN_RPC_URL",
@@ -22,7 +22,7 @@ export const RPC_URL = required(
 
 export const CONTRACT_ID = required(
   "NEXT_PUBLIC_CONTRACT_ID",
-  FALLBACK.id,
+  isProd ? undefined : DEV_CONTRACT,
 );
 
 export const NETWORK_PASSPHRASE = required(

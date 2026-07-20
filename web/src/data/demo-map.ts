@@ -96,9 +96,8 @@ export const DEMO_EDGES: MindmapEdge[] = [
   { from: "weekly", to: "alerts" },
 ];
 
-/** Static fallback for docs/README — runtime code should use @/lib/config */
+/** Display metadata only — contract id comes from env via @/lib/config */
 export const CONTRACT = {
-  id: "CCUNGHIVB5Y4Z3VQFGE4JB2K2ZKEALZYFDEH2AXWRFHJ4UEKGYDV66NQ",
   network: "Stellar Testnet",
 };
 

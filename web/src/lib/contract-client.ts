@@ -1,20 +1,13 @@
 /**
- * Typed DoqtriRegistry client — thin bindings-style wrapper over Soroban RPC.
- * Prefer this over scattering nativeToScVal calls in UI code.
+ * Typed DoqtriRegistry client — WASM-generated bindings + Freighter signing.
  */
-import {
-  Address,
-  BASE_FEE,
-  Contract,
-  Keypair,
-  TransactionBuilder,
-  nativeToScVal,
-  rpc,
-  scValToNative,
-  xdr,
-  Account,
-} from "@stellar/stellar-sdk";
 import type { NodeStatus } from "@/data/demo-map";
+import {
+  Client,
+  Errors,
+  type ContractNodeStatus,
+  Buffer,
+} from "@/lib/bindings/doqtri-registry";
 import { CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from "@/lib/config";
 import { hexToBytes32 } from "@/lib/hash";
 import { signSorobanTx } from "@/lib/wallet";
@@ -36,125 +29,127 @@ export type ChainNode = {
   updatedAt: number;
 };
 
-function hashToHex(hash: unknown): string {
+function hashToHex(hash: Buffer | Uint8Array | string): string {
   if (typeof hash === "string") return hash;
-  const bytes = Uint8Array.from(hash as ArrayLike<number>);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const bytes = hash instanceof Buffer ? hash : Buffer.from(hash);
+  return bytes.toString("hex");
 }
 
-function statusLabel(status: unknown): string {
+function toStatusTag(status: NodeStatus): ContractNodeStatus {
+  return { tag: status, values: undefined as unknown as void };
+}
+
+function fromStatusTag(status: ContractNodeStatus | string): string {
   if (typeof status === "string") return status;
-  if (typeof status === "number") {
-    return ["Planned", "Building", "Built", "Verified"][status] ?? String(status);
-  }
-  if (status && typeof status === "object") {
-    const s = status as { tag?: string; name?: string };
-    if (s.tag) return s.tag;
-    if (s.name) return s.name;
-  }
-  return "Unknown";
+  return status?.tag ?? "Unknown";
 }
 
-function nodeStatusScVal(status: NodeStatus) {
-  return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(status)]);
+function hexToBuffer(hex: string): Buffer {
+  return Buffer.from(hexToBytes32(hex));
 }
 
-function server() {
-  return new rpc.Server(RPC_URL);
-}
-
-function contract() {
-  return new Contract(CONTRACT_ID);
-}
-
-async function simulate(method: string, ...args: xdr.ScVal[]) {
-  const source = new Account(Keypair.random().publicKey(), "0");
-  const tx = new TransactionBuilder(source, {
-    fee: BASE_FEE,
+function readClient() {
+  return new Client({
+    contractId: CONTRACT_ID,
     networkPassphrase: NETWORK_PASSPHRASE,
-  })
-    .addOperation(contract().call(method, ...args))
-    .setTimeout(30)
-    .build();
-
-  const sim = await server().simulateTransaction(tx);
-  if (!rpc.Api.isSimulationSuccess(sim) || !sim.result?.retval) return null;
-  return scValToNative(sim.result.retval);
+    rpcUrl: RPC_URL,
+  });
 }
 
-async function waitForTx(hash: string) {
-  const s = server();
-  for (let i = 0; i < 30; i++) {
-    const res = await s.getTransaction(hash);
-    if (res.status === "SUCCESS") return res;
-    if (res.status === "FAILED") {
-      throw new DoqtriError("TX_FAILED", "Transaction failed on-chain");
-    }
-    await new Promise((r) => setTimeout(r, 1500));
-  }
-  throw new DoqtriError("TX_TIMEOUT", "Timed out waiting for confirmation");
+function writeClient(publicKey: string) {
+  return new Client({
+    contractId: CONTRACT_ID,
+    networkPassphrase: NETWORK_PASSPHRASE,
+    rpcUrl: RPC_URL,
+    publicKey,
+    signTransaction: async (xdr, opts) => {
+      const signedTxXdr = await signSorobanTx(
+        xdr,
+        opts?.address ?? publicKey,
+      );
+      return { signedTxXdr };
+    },
+  });
 }
 
-async function invoke(sourceAddress: string, method: string, args: xdr.ScVal[]) {
-  await assertFunded(sourceAddress);
-  try {
-    const account = await server().getAccount(sourceAddress);
-    let tx = new TransactionBuilder(account, {
-      fee: BASE_FEE,
-      networkPassphrase: NETWORK_PASSPHRASE,
-    })
-      .addOperation(contract().call(method, ...args))
-      .setTimeout(180)
-      .build();
-
-    tx = await server().prepareTransaction(tx);
-    const signedXdr = await signSorobanTx(tx.toXDR(), sourceAddress);
-    const signed = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
-    const sent = await server().sendTransaction(signed);
-
-    if (sent.status === "ERROR") {
-      throw new DoqtriError("SEND_FAILED", "Network rejected the transaction");
+function unwrapResult<T>(result: unknown, fallbackMsg: string): T {
+  if (
+    result &&
+    typeof result === "object" &&
+    "isErr" in result &&
+    typeof (result as { isErr: () => boolean }).isErr === "function"
+  ) {
+    const r = result as {
+      isErr: () => boolean;
+      unwrap: () => T;
+      unwrapErr: () => { message?: string };
+    };
+    if (r.isErr()) {
+      const err = r.unwrapErr();
+      const msg = err?.message ?? fallbackMsg;
+      if (msg.includes("DocumentAlreadyExists") || msg === Errors[1].message) {
+        throw new DoqtriError("ALREADY_EXISTS", "Document already registered");
+      }
+      if (msg.includes("DocumentNotFound") || msg === Errors[2].message) {
+        throw new DoqtriError("NOT_FOUND", "Document not found on-chain");
+      }
+      throw new DoqtriError("CONTRACT", msg);
     }
-    await waitForTx(sent.hash);
-    return sent.hash;
-  } catch (e) {
-    throw mapWalletError(e);
+    return r.unwrap();
   }
+  return result as T;
+}
+
+function mapInvokeError(e: unknown): never {
+  throw mapWalletError(e);
 }
 
 export const DoqtriRegistry = {
   async getDocument(docId: string): Promise<ChainDocument | null> {
-    const raw = await simulate(
-      "get_document",
-      nativeToScVal(docId, { type: "string" }),
-    );
-    if (!raw || typeof raw !== "object") return null;
-    const doc = raw as Record<string, unknown>;
-    return {
-      version: Number(doc.version),
-      nodeCount: Number(doc.node_count),
-      contentHash: hashToHex(doc.content_hash),
-      updatedAt: Number(doc.updated_at),
-      owner: doc.owner ? String(doc.owner) : undefined,
-    };
+    try {
+      const tx = await readClient().get_document({ doc_id: docId });
+      if (tx.simulation?.error) return null;
+      const doc = unwrapResult<{
+        version: number;
+        node_count: number;
+        content_hash: Buffer;
+        updated_at: bigint | number;
+        owner: string;
+      }>(tx.result, "get_document failed");
+      return {
+        version: Number(doc.version),
+        nodeCount: Number(doc.node_count),
+        contentHash: hashToHex(doc.content_hash),
+        updatedAt: Number(doc.updated_at),
+        owner: doc.owner ? String(doc.owner) : undefined,
+      };
+    } catch {
+      return null;
+    }
   },
 
   async getNode(docId: string, nodeId: string): Promise<ChainNode | null> {
-    const raw = await simulate(
-      "get_node",
-      nativeToScVal(docId, { type: "string" }),
-      nativeToScVal(nodeId, { type: "string" }),
-    );
-    if (!raw || typeof raw !== "object") return null;
-    const node = raw as Record<string, unknown>;
-    return {
-      status: statusLabel(node.status),
-      tool: String(node.tool ?? ""),
-      artifactRef: String(node.artifact_ref ?? ""),
-      updatedAt: Number(node.updated_at),
-    };
+    try {
+      const tx = await readClient().get_node({
+        doc_id: docId,
+        node_id: nodeId,
+      });
+      if (tx.simulation?.error) return null;
+      const node = unwrapResult<{
+        status: ContractNodeStatus;
+        tool: string;
+        artifact_ref: string;
+        updated_at: bigint | number;
+      }>(tx.result, "get_node failed");
+      return {
+        status: fromStatusTag(node.status),
+        tool: String(node.tool ?? ""),
+        artifactRef: String(node.artifact_ref ?? ""),
+        updatedAt: Number(node.updated_at),
+      };
+    } catch {
+      return null;
+    }
   },
 
   async registerDocument(
@@ -162,19 +157,35 @@ export const DoqtriRegistry = {
     docId: string,
     contentHashHex: string,
   ): Promise<string> {
+    await assertFunded(source);
     try {
-      return await invoke(source, "register_document", [
-        new Address(source).toScVal(),
-        nativeToScVal(docId, { type: "string" }),
-        nativeToScVal(hexToBytes32(contentHashHex)),
-      ]);
+      const tx = await writeClient(source).register_document({
+        owner: source,
+        doc_id: docId,
+        content_hash: hexToBuffer(contentHashHex),
+      });
+      // Detect already-exists from simulation before prompting Freighter
+      try {
+        unwrapResult(tx.result, "register failed");
+      } catch (e) {
+        if (e instanceof DoqtriError && e.code === "ALREADY_EXISTS") {
+          return DoqtriRegistry.updateDocument(source, docId, contentHashHex);
+        }
+        throw e;
+      }
+      const sent = await tx.signAndSend();
+      const hash = sent.sendTransactionResponse?.hash;
+      if (!hash) throw new DoqtriError("SEND_FAILED", "No transaction hash");
+      return hash;
     } catch (e) {
-      const err = mapWalletError(e);
-      if (err.code === "ALREADY_EXISTS" || /already/i.test(err.message)) {
-        // Idempotent: fall through to update
+      if (e instanceof DoqtriError && e.code === "ALREADY_EXISTS") {
         return DoqtriRegistry.updateDocument(source, docId, contentHashHex);
       }
-      throw err;
+      const mapped = mapWalletError(e);
+      if (mapped.code === "ALREADY_EXISTS") {
+        return DoqtriRegistry.updateDocument(source, docId, contentHashHex);
+      }
+      throw mapped;
     }
   },
 
@@ -183,10 +194,19 @@ export const DoqtriRegistry = {
     docId: string,
     contentHashHex: string,
   ): Promise<string> {
-    return invoke(source, "update_document", [
-      nativeToScVal(docId, { type: "string" }),
-      nativeToScVal(hexToBytes32(contentHashHex)),
-    ]);
+    await assertFunded(source);
+    try {
+      const tx = await writeClient(source).update_document({
+        doc_id: docId,
+        new_hash: hexToBuffer(contentHashHex),
+      });
+      const sent = await tx.signAndSend();
+      const hash = sent.sendTransactionResponse?.hash;
+      if (!hash) throw new DoqtriError("SEND_FAILED", "No transaction hash");
+      return hash;
+    } catch (e) {
+      mapInvokeError(e);
+    }
   },
 
   async setNodeStatus(
@@ -197,12 +217,21 @@ export const DoqtriRegistry = {
     tool: string,
     artifactRef: string,
   ): Promise<string> {
-    return invoke(source, "set_node_status", [
-      nativeToScVal(docId, { type: "string" }),
-      nativeToScVal(nodeId, { type: "string" }),
-      nodeStatusScVal(status),
-      nativeToScVal(tool, { type: "string" }),
-      nativeToScVal(artifactRef, { type: "string" }),
-    ]);
+    await assertFunded(source);
+    try {
+      const tx = await writeClient(source).set_node_status({
+        doc_id: docId,
+        node_id: nodeId,
+        status: toStatusTag(status),
+        tool,
+        artifact_ref: artifactRef,
+      });
+      const sent = await tx.signAndSend();
+      const hash = sent.sendTransactionResponse?.hash;
+      if (!hash) throw new DoqtriError("SEND_FAILED", "No transaction hash");
+      return hash;
+    } catch (e) {
+      mapInvokeError(e);
+    }
   },
 };
