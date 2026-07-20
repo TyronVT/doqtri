@@ -62,16 +62,44 @@ export function slugify(label: string): string {
   );
 }
 
-/** Compile ## headings into a simple mindmap layout. */
+type Heading = { level: number; label: string; index: number };
+
+function parseHeadings(markdown: string): Heading[] {
+  const out: Heading[] = [];
+  for (const m of markdown.matchAll(/^(#{2,4})\s+(.+)$/gm)) {
+    out.push({
+      level: m[1].length,
+      label: m[2].trim(),
+      index: out.length,
+    });
+  }
+  return out;
+}
+
+function defaultPosition(
+  depth: number,
+  siblingIndex: number,
+  siblingCount: number,
+): { x: number; y: number } {
+  const y = 70 + depth * 130;
+  if (depth === 0) return { x: 480, y: 70 };
+  const span = Math.min(820, 160 + siblingCount * 140);
+  const start = 480 - span / 2;
+  const step = siblingCount <= 1 ? 0 : span / (siblingCount - 1);
+  return { x: start + siblingIndex * step, y };
+}
+
+/**
+ * Compile ## / ### / #### headings into a nested mindmap.
+ * Preserves prior x/y (and status/tool/artifact) when node ids match.
+ */
 export function compileMindmap(
   title: string,
   markdown: string,
   prev?: MindmapNode[],
 ): { nodes: MindmapNode[]; edges: MindmapEdge[] } {
   const prevMap = new Map((prev ?? []).map((n) => [n.id, n]));
-  const headings = [...markdown.matchAll(/^##\s+(.+)$/gm)].map((m) =>
-    m[1].trim(),
-  );
+  const headings = parseHeadings(markdown);
 
   const rootId = "root";
   const rootPrev = prevMap.get(rootId);
@@ -79,40 +107,84 @@ export function compileMindmap(
     {
       id: rootId,
       label: title || "Untitled",
-      x: 480,
-      y: 70,
+      x: rootPrev?.x ?? 480,
+      y: rootPrev?.y ?? 70,
       status: rootPrev?.status ?? "Planned",
       tool: rootPrev?.tool ?? "",
       artifactRef: rootPrev?.artifactRef ?? "",
+      depth: 0,
     },
   ];
   const edges: MindmapEdge[] = [];
 
-  const cols = Math.max(1, Math.min(4, headings.length || 1));
-  headings.forEach((label, i) => {
-    let id = slugify(label);
+  // Stack of (headingLevel, nodeId) for nesting under nearest shallower heading
+  const stack: { level: number; id: string }[] = [{ level: 1, id: rootId }];
+  const childrenOf = new Map<string, string[]>([[rootId, []]]);
+
+  headings.forEach((h, i) => {
+    let id = slugify(h.label);
     if (nodes.some((n) => n.id === id)) id = `${id}-${i}`;
+
+    while (stack.length > 1 && stack[stack.length - 1].level >= h.level) {
+      stack.pop();
+    }
+    const parent = stack[stack.length - 1];
+    const siblings = childrenOf.get(parent.id) ?? [];
+    siblings.push(id);
+    childrenOf.set(parent.id, siblings);
+    childrenOf.set(id, []);
+
+    const depth = h.level - 1; // ## -> 1, ### -> 2, #### -> 3
     const prevN = prevMap.get(id);
-    const col = i % cols;
-    const row = Math.floor(i / cols);
+    const pos = defaultPosition(depth, siblings.length - 1, siblings.length);
+
     nodes.push({
       id,
-      label,
-      x: 140 + col * 220,
-      y: 220 + row * 140,
+      label: h.label,
+      x: prevN?.x ?? pos.x,
+      y: prevN?.y ?? pos.y,
       status: (prevN?.status as NodeStatus) ?? "Planned",
       tool: prevN?.tool ?? "",
       artifactRef: prevN?.artifactRef ?? "",
+      depth,
     });
-    edges.push({ from: rootId, to: id });
+    edges.push({ from: parent.id, to: id });
+    stack.push({ level: h.level, id });
   });
+
+  // Re-spread default x for nodes without a prior layout (fresh siblings)
+  for (const [parentId, kids] of childrenOf) {
+    if (kids.length === 0) continue;
+    kids.forEach((kidId, idx) => {
+      const node = nodes.find((n) => n.id === kidId);
+      if (!node) return;
+      const hadPrev = prevMap.has(kidId);
+      if (hadPrev) return;
+      const depth = node.depth ?? 1;
+      const pos = defaultPosition(depth, idx, kids.length);
+      node.x = pos.x;
+      node.y = pos.y;
+    });
+  }
 
   return { nodes, edges };
 }
 
 export function createDoc(owner: string, title = "Untitled plan"): VaultDoc {
   const id = `doc-${Date.now().toString(36)}`;
-  const markdown = `# ${title}\n\n## First milestone\n\nWrite the plan here. Use ## headings — they become mindmap nodes.\n\n## Ship checklist\n\n`;
+  const markdown = `# ${title}
+
+## First milestone
+
+Outline the work. Nest with ### for sub-nodes.
+
+### Research
+
+### Build
+
+## Ship checklist
+
+`;
   const { nodes, edges } = compileMindmap(title, markdown);
   const doc: VaultDoc = {
     id,
@@ -124,6 +196,47 @@ export function createDoc(owner: string, title = "Untitled plan"): VaultDoc {
     registered: false,
     version: 0,
     contentHash: "",
+    updatedAt: Date.now(),
+  };
+  upsertDoc(owner, doc);
+  return doc;
+}
+
+/** Merge a chain-discovered doc stub into the local vault if missing. */
+export function ensureChainDoc(
+  owner: string,
+  stub: {
+    id: string;
+    version: number;
+    nodeCount: number;
+    contentHash: string;
+  },
+): VaultDoc {
+  const existing = getDoc(owner, stub.id);
+  if (existing) {
+    const next = {
+      ...existing,
+      registered: true,
+      version: stub.version,
+      contentHash: stub.contentHash || existing.contentHash,
+      updatedAt: Date.now(),
+    };
+    upsertDoc(owner, next);
+    return next;
+  }
+  const title = stub.id;
+  const markdown = `# ${title}\n\n## Synced from chain\n\n`;
+  const { nodes, edges } = compileMindmap(title, markdown);
+  const doc: VaultDoc = {
+    id: stub.id,
+    title,
+    markdown,
+    nodes,
+    edges,
+    owner,
+    registered: true,
+    version: stub.version,
+    contentHash: stub.contentHash,
     updatedAt: Date.now(),
   };
   upsertDoc(owner, doc);
