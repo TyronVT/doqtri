@@ -59,11 +59,52 @@
   background: var(--btn);
   color: var(--btn-ink);
   border-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn:disabled {
   opacity: 0.55;
   cursor: wait;
+}
+
+.spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.shareRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.txLink {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.msgPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-muted);
 }
 
 .status {

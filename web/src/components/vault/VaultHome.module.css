@@ -19,6 +19,13 @@
   letter-spacing: -0.05em;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .newBtn {
   padding: 0.45rem 0.85rem;
   border-radius: 6px;
@@ -26,6 +33,27 @@
   color: var(--btn-ink);
   font-size: 0.8125rem;
   font-weight: 550;
+}
+
+.ghostBtn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.ghostBtn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.syncNote {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  margin: -0.75rem 0 1rem;
 }
 
 .empty {

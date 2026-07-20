@@ -20,6 +20,13 @@ export function rememberDocId(docId: string) {
   window.localStorage.setItem(INDEX_KEY, JSON.stringify([...set]));
 }
 
+function extractDocId(value: unknown): string | null {
+  if (typeof value === "string" && value.length > 0 && value.length < 128) {
+    return value;
+  }
+  return null;
+}
+
 /** Discover registered doc IDs from recent contract events + local index. */
 export async function discoverDocIds(): Promise<string[]> {
   const found = new Set(readIndex());
@@ -40,20 +47,22 @@ export async function discoverDocIds(): Promise<string[]> {
 
     for (const ev of page.events ?? []) {
       try {
-        // register payload is doc_id string
-        const topics = ev.topic?.map((t) => {
+        const topics = (ev.topic ?? []).map((t) => {
           try {
             return scValToNative(t as xdr.ScVal);
           } catch {
             return null;
           }
         });
-        const topicStr = (topics ?? []).map(String).join(",");
-        if (topicStr.includes("register") || topicStr.includes("doqtri")) {
+        const topicJoined = topics.map(String).join("|").toLowerCase();
+        if (
+          topicJoined.includes("register") ||
+          topicJoined.includes("update") ||
+          topicJoined.includes("doqtri")
+        ) {
           const value = scValToNative(ev.value as xdr.ScVal);
-          if (typeof value === "string" && value.length > 0) {
-            found.add(value);
-          }
+          const id = extractDocId(value);
+          if (id) found.add(id);
         }
       } catch {
         // ignore malformed events
@@ -77,8 +86,9 @@ export async function syncVaultFromChain(owner: string) {
   for (const id of ids) {
     const doc = await DoqtriRegistry.getDocument(id);
     if (!doc) continue;
+    // Prefer owner match; if decode omitted owner, keep docs we registered locally
     if (doc.owner && doc.owner !== owner) continue;
-    // If owner field missing from decode, still include if in local index after register
+    if (!doc.owner && !readIndex().includes(id)) continue;
     owned.push({
       id,
       version: doc.version,
