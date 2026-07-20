@@ -1,0 +1,164 @@
+#![cfg(test)]
+
+use super::*;
+use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String};
+
+fn setup(env: &Env) -> (DoqtriRegistryClient<'_>, Address) {
+    let contract_id = env.register(DoqtriRegistry, ());
+    let client = DoqtriRegistryClient::new(env, &contract_id);
+    let owner = Address::generate(env);
+    (client, owner)
+}
+
+fn hash(env: &Env, seed: u8) -> BytesN<32> {
+    BytesN::from_array(env, &[seed; 32])
+}
+
+#[test]
+fn test_register_document() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    let version = client.register_document(&owner, &doc_id, &hash(&env, 1));
+    assert_eq!(version, 1);
+
+    let doc = client.get_document(&doc_id);
+    assert_eq!(doc.owner, owner);
+    assert_eq!(doc.version, 1);
+    assert_eq!(doc.node_count, 0);
+    assert_eq!(doc.content_hash, hash(&env, 1));
+}
+
+#[test]
+fn test_duplicate_register_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    client.register_document(&owner, &doc_id, &hash(&env, 1));
+
+    let result = client.try_register_document(&owner, &doc_id, &hash(&env, 2));
+    assert_eq!(result, Err(Ok(Error::DocumentAlreadyExists)));
+}
+
+#[test]
+fn test_update_increments_version() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    client.register_document(&owner, &doc_id, &hash(&env, 1));
+
+    let v2 = client.update_document(&doc_id, &hash(&env, 2));
+    assert_eq!(v2, 2);
+    let v3 = client.update_document(&doc_id, &hash(&env, 3));
+    assert_eq!(v3, 3);
+
+    let doc = client.get_document(&doc_id);
+    assert_eq!(doc.version, 3);
+    assert_eq!(doc.content_hash, hash(&env, 3));
+}
+
+#[test]
+fn test_update_missing_document_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "ghost-doc");
+    let result = client.try_update_document(&doc_id, &hash(&env, 9));
+    assert_eq!(result, Err(Ok(Error::DocumentNotFound)));
+}
+
+#[test]
+fn test_node_lifecycle() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    let node_id = String::from_str(&env, "node-weekly-report");
+    client.register_document(&owner, &doc_id, &hash(&env, 1));
+
+    // Planned -> Building -> Built -> Verified
+    client.set_node_status(
+        &doc_id,
+        &node_id,
+        &NodeStatus::Planned,
+        &String::from_str(&env, "n8n"),
+        &String::from_str(&env, ""),
+    );
+    client.set_node_status(
+        &doc_id,
+        &node_id,
+        &NodeStatus::Built,
+        &String::from_str(&env, "n8n"),
+        &String::from_str(&env, "wf_8Xk2p"),
+    );
+    client.set_node_status(
+        &doc_id,
+        &node_id,
+        &NodeStatus::Verified,
+        &String::from_str(&env, "n8n"),
+        &String::from_str(&env, "wf_8Xk2p"),
+    );
+
+    let node = client.get_node(&doc_id, &node_id);
+    assert_eq!(node.status, NodeStatus::Verified);
+    assert_eq!(node.tool, String::from_str(&env, "n8n"));
+    assert_eq!(node.artifact_ref, String::from_str(&env, "wf_8Xk2p"));
+
+    // node_count increments only once per unique node
+    let doc = client.get_document(&doc_id);
+    assert_eq!(doc.node_count, 1);
+}
+
+#[test]
+fn test_multiple_nodes_counted() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    client.register_document(&owner, &doc_id, &hash(&env, 1));
+
+    for name in ["node-a", "node-b", "node-c"] {
+        client.set_node_status(
+            &doc_id,
+            &String::from_str(&env, name),
+            &NodeStatus::Planned,
+            &String::from_str(&env, "retool"),
+            &String::from_str(&env, ""),
+        );
+    }
+
+    assert_eq!(client.get_document(&doc_id).node_count, 3);
+}
+
+#[test]
+fn test_get_missing_node_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    client.register_document(&owner, &doc_id, &hash(&env, 1));
+
+    let result = client.try_get_node(&doc_id, &String::from_str(&env, "ghost-node"));
+    assert_eq!(result, Err(Ok(Error::NodeNotFound)));
+}
+
+#[test]
+fn test_auth_is_required() {
+    let env = Env::default();
+    let (client, owner) = setup(&env);
+
+    let doc_id = String::from_str(&env, "doqtri-launch-plan");
+    // No mock_all_auths — the host must reject the unauthorized call.
+    let result = client.try_register_document(&owner, &doc_id, &hash(&env, 1));
+    assert!(result.is_err());
+}
