@@ -1,0 +1,70 @@
+.stage {
+  position: relative;
+  border-block: 1px solid var(--line);
+  background: linear-gradient(
+    180deg,
+    rgba(18, 20, 26, 0.55) 0%,
+    rgba(9, 10, 12, 0.2) 100%
+  );
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.35fr);
+    min-height: 220vh;
+  }
+}
+
+.copy {
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.25rem, 4vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 6vw, 4rem);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 1024px) {
+  .copy {
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+    padding-block: clamp(2rem, 5vw, 3.5rem);
+    justify-content: space-between;
+    min-height: 220vh;
+  }
+}
+
+.mapCol {
+  position: relative;
+}
+
+.mapSticky {
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .mapSticky {
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100svh - var(--nav-h));
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mapSticky {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 5;
+    max-height: min(58svh, 420px);
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: var(--ground);
+  }
+}

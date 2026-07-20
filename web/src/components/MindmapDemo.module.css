@@ -1,0 +1,280 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 360px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(61, 214, 140, 0.07), transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(74, 163, 224, 0.06), transparent 45%),
+    var(--surface);
+}
+
+.sticky {
+  height: 100%;
+}
+
+.header {
+  padding: 1rem 1.15rem 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  flex-shrink: 0;
+}
+
+.header h2 {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.chipLive {
+  border-color: rgba(61, 214, 140, 0.35);
+  color: var(--signal);
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 640px) {
+  .stage {
+    grid-template-columns: 1fr minmax(200px, 250px);
+  }
+}
+
+.canvas {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 640px) {
+  .canvas {
+    border-right: 1px solid var(--line);
+  }
+}
+
+.sticky .canvas {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+}
+
+.sticky .svg {
+  min-height: 100%;
+}
+
+.edge {
+  fill: none;
+  stroke: rgba(238, 241, 245, 0.18);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  animation: drawEdge 1.05s var(--ease) forwards, drift 20s linear 1.05s infinite;
+}
+
+@keyframes drawEdge {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes drift {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+}
+
+.nodeCircle {
+  fill: var(--surface-2);
+  stroke-width: 2;
+  transition: stroke 0.35s var(--ease), stroke-width 0.2s var(--ease),
+    fill 0.25s var(--ease);
+}
+
+.node:hover .nodeCircle,
+.node:focus-visible .nodeCircle {
+  stroke-width: 3;
+}
+
+.nodeSelected .nodeCircle {
+  stroke-width: 3;
+  fill: #1c212c;
+}
+
+.nodeRing {
+  fill: none;
+  stroke-width: 1.25;
+  opacity: 0.9;
+  transition: stroke 0.3s var(--ease);
+}
+
+.nodePulse {
+  fill: none;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pulse 2.4s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+.nodeLabel {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--ink);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.nodeStatus {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--ink-muted);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.panel {
+  padding: 1.1rem 1rem 1.25rem;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+  overflow: auto;
+}
+
+@media (min-width: 640px) {
+  .panel {
+    border-top: none;
+  }
+}
+
+.panelKicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.panelTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  margin-bottom: 0.85rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.15rem;
+  margin-bottom: 0.7rem;
+}
+
+.field dt {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.field dd {
+  font-size: 0.9rem;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.statusDot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  transition: background 0.35s var(--ease);
+}
+
+.liveTag {
+  margin-left: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--signal);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.hint a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.drawn .node {
+  animation: nodeIn 0.6s var(--ease) both;
+}
+
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
