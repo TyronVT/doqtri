@@ -8,6 +8,7 @@ export type MindmapNode = {
   status: NodeStatus;
   tool: string;
   artifactRef: string;
+  depth?: number;
 };
 
 export type MindmapEdge = {
@@ -32,6 +33,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Verified",
     tool: "—",
     artifactRef: "doc root",
+    depth: 0,
   },
   {
     id: "ingest",
@@ -41,6 +43,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Verified",
     tool: "n8n",
     artifactRef: "wf_ingest_02",
+    depth: 1,
   },
   {
     id: "compile",
@@ -50,6 +53,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Built",
     tool: "Langflow",
     artifactRef: "flow_compile_v3",
+    depth: 1,
   },
   {
     id: "weekly",
@@ -59,6 +63,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Building",
     tool: "n8n",
     artifactRef: "wf_8Xk2p",
+    depth: 1,
   },
   {
     id: "ops",
@@ -68,6 +73,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Planned",
     tool: "Retool",
     artifactRef: "",
+    depth: 2,
   },
   {
     id: "alerts",
@@ -77,6 +83,7 @@ export const DEMO_NODES: MindmapNode[] = [
     status: "Planned",
     tool: "Make",
     artifactRef: "",
+    depth: 2,
   },
 ];
 
@@ -89,13 +96,10 @@ export const DEMO_EDGES: MindmapEdge[] = [
   { from: "weekly", to: "alerts" },
 ];
 
+/** Static fallback for docs/README — runtime code should use @/lib/config */
 export const CONTRACT = {
   id: "CCUNGHIVB5Y4Z3VQFGE4JB2K2ZKEALZYFDEH2AXWRFHJ4UEKGYDV66NQ",
   network: "Stellar Testnet",
-  labUrl:
-    "https://lab.stellar.org/r/testnet/contract/CCUNGHIVB5Y4Z3VQFGE4JB2K2ZKEALZYFDEH2AXWRFHJ4UEKGYDV66NQ",
-  deployTxUrl:
-    "https://stellar.expert/explorer/testnet/tx/3ccbf69d08a6ceb6b0dd1222f6c2bd113946a9b1cc23ac5f914f631bba9d56af",
 };
 
 export function statusColor(status: NodeStatus): string {
