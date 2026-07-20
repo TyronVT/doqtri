@@ -6,11 +6,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+  background: rgba(9, 9, 11, 0.72);
   backdrop-filter: blur(16px) saturate(1.2);
-  background: rgba(9, 10, 12, 0.72);
   border-bottom: 1px solid transparent;
-  transition: border-color 0.3s var(--ease);
+  transition: border-color 0.25s var(--ease);
 }
 
 .navScrolled {
@@ -18,44 +18,26 @@
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: -0.04em;
 }
 
 .links {
   display: none;
-  gap: 1.75rem;
+  gap: 1.5rem;
   list-style: none;
 }
 
 .links a {
   color: var(--ink-muted);
-  font-size: 0.9375rem;
-  transition: color 0.2s var(--ease);
+  font-size: 0.875rem;
+  font-weight: 450;
+  transition: color 0.15s var(--ease);
 }
 
 .links a:hover {
   color: var(--ink);
-}
-
-.cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  background: var(--btn);
-  color: var(--btn-ink);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: transform 0.2s var(--ease), opacity 0.2s var(--ease);
-}
-
-.cta:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 @media (min-width: 720px) {

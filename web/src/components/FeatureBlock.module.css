@@ -1,8 +1,8 @@
 .section {
-  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  padding: 0;
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+  transform: translateY(16px);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
 }
 
 .visible {
@@ -11,32 +11,31 @@
 }
 
 .inner {
-  max-width: 36rem;
+  max-width: 28rem;
 }
 
 .kicker {
-  font-size: 0.8125rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-muted);
-  margin-bottom: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 0.55rem;
 }
 
 .title {
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.55rem);
   font-weight: 600;
-  letter-spacing: -0.05em;
-  line-height: 1.15;
-  margin-bottom: 0.9rem;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+  margin-bottom: 0.55rem;
 }
 
 .copy {
   color: var(--ink-muted);
-  font-size: 1.0625rem;
-  max-width: 42ch;
+  font-size: 0.95rem;
+  max-width: 36ch;
+  letter-spacing: -0.01em;
 }
 
-.alt {
-  /* unused in sticky stage; kept for compatibility */
-}
+.alt {}

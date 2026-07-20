@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./Hero.module.css";
 
 export default function Hero() {
@@ -8,15 +9,16 @@ export default function Hero() {
           Doqtri
         </h1>
         <p className={styles.headline}>
-          Living docs → executable mindmaps.
+          Your last next plan.
         </p>
         <p className={styles.support}>
-          Planned vs shipped, proven on Stellar.
+          Living docs into executable mindmaps — planned vs shipped, proven on
+          Stellar.
         </p>
         <div className={styles.actions}>
-          <a className={styles.primary} href="/vault">
+          <Link className={styles.primary} href="/vault">
             Open vault
-          </a>
+          </Link>
           <a className={styles.secondary} href="#map">
             See the map
           </a>

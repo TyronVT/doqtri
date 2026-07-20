@@ -1,31 +1,64 @@
 .stage {
   position: relative;
-  border-block: 1px solid var(--line);
-  background: linear-gradient(
-    180deg,
-    rgba(18, 20, 26, 0.55) 0%,
-    rgba(9, 10, 12, 0.2) 100%
-  );
+  padding: 0 clamp(1rem, 3vw, 2rem) clamp(2rem, 5vw, 3.5rem);
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr;
   align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 40px 80px -40px rgba(0, 0, 0, 0.65);
 }
 
 @media (min-width: 1024px) {
   .grid {
-    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.35fr);
-    min-height: 220vh;
+    grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.4fr);
+    min-height: 200vh;
   }
 }
 
+.chrome {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  background: #0c0c0e;
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #3f3f46;
+}
+
+.dot:nth-child(1) { background: #52525b; }
+.dot:nth-child(2) { background: #3f3f46; }
+.dot:nth-child(3) { background: #27272a; }
+
+.chromeTitle {
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+}
+
 .copy {
-  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.25rem, 4vw, 3rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
   display: flex;
   flex-direction: column;
-  gap: clamp(2rem, 6vw, 4rem);
+  gap: clamp(2rem, 6vw, 3.5rem);
   border-bottom: 1px solid var(--line);
 }
 
@@ -33,14 +66,14 @@
   .copy {
     border-bottom: none;
     border-right: 1px solid var(--line);
-    padding-block: clamp(2rem, 5vw, 3.5rem);
+    min-height: 200vh;
     justify-content: space-between;
-    min-height: 220vh;
   }
 }
 
 .mapCol {
   position: relative;
+  background: var(--ground);
 }
 
 .mapSticky {
@@ -50,8 +83,8 @@
 @media (min-width: 1024px) {
   .mapSticky {
     position: sticky;
-    top: var(--nav-h);
-    height: calc(100svh - var(--nav-h));
+    top: calc(var(--nav-h) + 0.75rem);
+    height: calc(100svh - var(--nav-h) - 1.5rem);
     display: flex;
     flex-direction: column;
   }
@@ -62,9 +95,7 @@
     position: sticky;
     top: var(--nav-h);
     z-index: 5;
-    max-height: min(58svh, 420px);
+    max-height: min(56svh, 400px);
     overflow: hidden;
-    border-bottom: 1px solid var(--line);
-    background: var(--ground);
   }
 }

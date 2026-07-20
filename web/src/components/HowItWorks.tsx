@@ -10,14 +10,16 @@ export default function HowItWorks() {
       </h2>
       <ol className={styles.flow}>
         {STEPS.map((step, i) => (
-          <li key={step} className={styles.step}>
+          <li key={step} style={{ display: "contents" }}>
             {i > 0 ? (
               <span className={styles.arrow} aria-hidden>
                 →
               </span>
             ) : null}
-            <span className={styles.idx}>{String(i + 1).padStart(2, "0")}</span>
-            {step}
+            <span className={styles.step}>
+              <span className={styles.idx}>{String(i + 1).padStart(2, "0")}</span>
+              {step}
+            </span>
           </li>
         ))}
       </ol>

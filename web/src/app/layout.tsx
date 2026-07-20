@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, IBM_Plex_Mono, Outfit } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
-const instrument = Instrument_Sans({
-  variable: "--font-instrument",
+const plex = IBM_Plex_Sans({
+  variable: "--font-plex",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const ibmMono = IBM_Plex_Mono({
-  variable: "--font-ibm-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
   display: "swap",
@@ -24,7 +19,8 @@ const ibmMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Doqtri — living docs into mindmaps",
-  description: "Living documents into executable mindmaps. Planned vs shipped on Stellar.",
+  description:
+    "Living documents into executable mindmaps. Planned vs shipped on Stellar.",
   metadataBase: new URL("https://doqtri.app"),
   openGraph: {
     title: "Doqtri — living docs into mindmaps",
@@ -49,9 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${instrument.variable} ${outfit.variable} ${ibmMono.variable}`}
-      >
+      <body className={`${plex.variable} ${plexMono.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

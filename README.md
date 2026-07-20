@@ -29,6 +29,37 @@
 
 ---
 
+## Problem
+
+Teams plan in living documents — Google Docs, Notion, markdown vaults — then
+ship work in n8n, Make, Retool, Langflow, and scattered repos.
+
+That creates a trust gap:
+
+- **Plans and reality diverge.** The doc says “done”; the workflow was never built.
+- **Progress is unverifiable.** “Shipped” badges live in private app state anyone can edit.
+- **No shared receipt.** Stakeholders can’t independently check what version of the plan
+  was active, or which mindmap nodes actually went live.
+- **Audit trails rot.** Screenshots and status meetings don’t survive handoffs, vendor
+  churn, or “we’ll update the doc later.”
+
+In short: **you can’t cryptographically prove planned vs shipped.**
+
+## Solution
+
+**Doqtri** is Obsidian for executable plans — with Stellar as the proof layer.
+
+| Layer | What it does |
+| --- | --- |
+| **Vault + editor** | Write the living plan in markdown; `##` headings compile into a mindmap |
+| **Executable mindmap** | Each node tracks lifecycle: Planned → Building → Built → Verified |
+| **Ship panel** | Attach the builder (n8n / Make / Retool / Langflow) and artifact ref |
+| **DoqtriRegistry (Soroban)** | Anchor SHA-256 doc hashes + node status on Stellar with owner auth |
+| **Public audit** | Anyone opens `/d/[docId]` and reads the ledger — not your database |
+
+**Result:** every semantic change bumps an on-chain version; every shipped node
+leaves a receipt. Planned vs shipped stops being a slide and becomes a fact.
+
 ## Vision
 
 Most roadmaps live in docs. Most “shipped” badges live in app state. Those two

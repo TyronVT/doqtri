@@ -1,25 +1,30 @@
 :root {
-  --ground: #090a0c;
-  --ground-deep: #0e1014;
-  --ink: #f3f5f8;
-  --ink-muted: #a4acb8;
-  --line: rgba(243, 245, 248, 0.12);
-  --signal: #3dd68c;
-  --signal-soft: rgba(61, 214, 140, 0.16);
-  --planned: #7a8494;
-  --building: #e0a13a;
-  --built: #4aa3e0;
-  --verified: #3dd68c;
-  --panel: rgba(16, 18, 24, 0.92);
-  --surface: #12141a;
-  --surface-2: #181b22;
-  --btn: #f3f5f8;
-  --btn-ink: #090a0c;
-  --font-sans: var(--font-instrument), "Helvetica Neue", sans-serif;
-  --font-display: var(--font-outfit), var(--font-instrument), sans-serif;
-  --font-mono: var(--font-ibm-mono), ui-monospace, monospace;
-  --nav-h: 4rem;
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Zed-inspired: near-black canvas, cool ink, electric blue accent */
+  --ground: #09090b;
+  --ground-deep: #050506;
+  --ink: #fafafa;
+  --ink-muted: #a1a1aa;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --accent: #6ea8fe;
+  --accent-soft: rgba(110, 168, 254, 0.14);
+  --signal: #5eead4;
+  --signal-soft: rgba(94, 234, 212, 0.14);
+  --planned: #71717a;
+  --building: #fbbf24;
+  --built: #6ea8fe;
+  --verified: #5eead4;
+  --panel: rgba(17, 17, 19, 0.92);
+  --surface: #111113;
+  --surface-2: #18181b;
+  --btn: #fafafa;
+  --btn-ink: #09090b;
+  --font-sans: var(--font-plex), "Helvetica Neue", sans-serif;
+  --font-display: var(--font-plex), var(--font-sans);
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --nav-h: 3.5rem;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius: 10px;
 }
 
 *,
@@ -40,22 +45,23 @@ body {
   color: var(--ink);
   background: var(--ground);
   font-family: var(--font-sans);
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: 1.55;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Zed-like: flat black with a single cool vignette — not loud meshes */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(1000px 640px at 15% -8%, rgba(61, 214, 140, 0.14), transparent 55%),
-    radial-gradient(860px 520px at 92% 0%, rgba(74, 163, 224, 0.1), transparent 50%),
-    radial-gradient(700px 480px at 50% 110%, rgba(61, 214, 140, 0.06), transparent 55%),
-    linear-gradient(180deg, #0c0d11 0%, var(--ground) 45%, var(--ground-deep) 100%);
+    radial-gradient(900px 480px at 50% -10%, rgba(110, 168, 254, 0.1), transparent 60%),
+    radial-gradient(700px 420px at 80% 100%, rgba(94, 234, 212, 0.04), transparent 55%),
+    var(--ground);
 }
 
 body::after {
@@ -63,13 +69,13 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.22;
+  opacity: 0.35;
+  pointer-events: none;
   background-image:
     linear-gradient(var(--line) 1px, transparent 1px),
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: radial-gradient(ellipse at 50% 20%, black 15%, transparent 70%);
-  pointer-events: none;
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 10%, transparent 70%);
 }
 
 a {
@@ -92,7 +98,7 @@ svg {
 }
 
 ::selection {
-  background: var(--signal-soft);
+  background: var(--accent-soft);
   color: var(--ink);
 }
 

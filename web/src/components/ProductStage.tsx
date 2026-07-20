@@ -6,6 +6,12 @@ export default function ProductStage() {
   return (
     <section className={styles.stage} id="map" aria-label="Product demo">
       <div className={styles.grid}>
+        <div className={styles.chrome} aria-hidden>
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+          <span className={styles.chromeTitle}>doqtri — launch plan</span>
+        </div>
         <div className={styles.copy}>
           <FeatureBlock
             id="versions"
