@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import WalletButton from "@/components/WalletButton";
+import { useWallet } from "@/lib/WalletContext";
 import styles from "./Nav.module.css";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const { address } = useWallet();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -27,9 +30,14 @@ export default function Nav() {
           <li>
             <a href="#how">How</a>
           </li>
+          {address ? (
+            <li>
+              <Link href="/vault">Vault</Link>
+            </li>
+          ) : null}
         </ul>
       </nav>
-      <WalletButton />
+      <WalletButton redirectToVault />
     </header>
   );
 }

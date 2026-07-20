@@ -14,7 +14,10 @@ export default function Hero() {
           Planned vs shipped, proven on Stellar.
         </p>
         <div className={styles.actions}>
-          <a className={styles.primary} href="#map">
+          <a className={styles.primary} href="/vault">
+            Open vault
+          </a>
+          <a className={styles.secondary} href="#map">
             See the map
           </a>
         </div>

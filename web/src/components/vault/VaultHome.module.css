@@ -1,0 +1,86 @@
+.page {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.head h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  letter-spacing: -0.05em;
+}
+
+.newBtn {
+  padding: 0.55rem 0.95rem;
+  border-radius: 8px;
+  background: var(--btn);
+  color: var(--btn-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.empty {
+  color: var(--ink-muted);
+  padding: 2rem 0;
+}
+
+.list {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s var(--ease);
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.meta {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.title {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+}
+
+.badgeOn {
+  color: var(--signal);
+  border-color: rgba(61, 214, 140, 0.35);
+}

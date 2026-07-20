@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/WalletContext";
 import { shortenAddress } from "@/lib/wallet";
 import styles from "./WalletButton.module.css";
 
-export default function WalletButton() {
+type Props = {
+  redirectToVault?: boolean;
+};
+
+export default function WalletButton({ redirectToVault = false }: Props) {
   const { address, connecting, connect, disconnect } = useWallet();
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   if (address) {
@@ -30,9 +36,11 @@ export default function WalletButton() {
       title={error ?? "Log in with Freighter"}
       onClick={() => {
         setError(null);
-        void connect().catch(() =>
-          setError("Install Freighter to log in"),
-        );
+        void connect()
+          .then(() => {
+            if (redirectToVault) router.push("/vault");
+          })
+          .catch(() => setError("Install Freighter to log in"));
       }}
     >
       {connecting ? "…" : "Log in"}

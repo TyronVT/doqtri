@@ -10,6 +10,7 @@ import {
   Networks,
   SwkAppDarkTheme,
 } from "@creit.tech/stellar-wallets-kit/types";
+import { NETWORK_PASSPHRASE } from "@/lib/config";
 
 let ready = false;
 
@@ -52,4 +53,16 @@ export function onWalletDisconnect(cb: () => void): () => void {
 
 export function shortenAddress(address: string): string {
   return `${address.slice(0, 4)}…${address.slice(-4)}`;
+}
+
+export async function signSorobanTx(
+  xdr: string,
+  address: string,
+): Promise<string> {
+  initWalletKit();
+  const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
+    networkPassphrase: NETWORK_PASSPHRASE,
+    address,
+  });
+  return signedTxXdr;
 }

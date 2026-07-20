@@ -60,8 +60,10 @@ worlds drift apart.
 
 - Dark, Cursor-inspired landing with sticky interactive mindmap
 - Freighter login via [Stellar Wallets Kit](https://stellarwalletskit.dev/) (Freighter-only)
-- Live Soroban reads against the deployed testnet contract (falls back to demo data)
-- How-it-works flow: Doc → Hash → Mindmap → Build → Stellar
+- **Vault** (Obsidian-like): create plans, markdown editor, mindmap from `##` headings
+- **Ship panel**: register / update content hash + sync node status with Freighter-signed txs
+- **Public audit** at `/d/[docId]`
+- Live Soroban reads against the deployed testnet contract
 
 ---
 
@@ -166,8 +168,10 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-- **Log in** (nav) connects Freighter on testnet via Stellar Wallets Kit  
-- Mindmap may show **on-chain** when the demo doc exists on the registry, otherwise **demo** data
+- **Log in** → Freighter → redirects to **`/vault`**
+- Create a plan → write markdown (`##` headings become nodes) → **Register** / **Update hash**
+- Select a node → set status/tool/artifact → **Sync to Stellar**
+- Share **`/d/[docId]`** for public audit
 
 ```bash
 npm run build   # production build
