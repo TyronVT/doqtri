@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MindmapNode, NodeStatus } from "@/data/demo-map";
 import { statusColor } from "@/data/demo-map";
+import { expertTxUrl } from "@/lib/config";
+import { DoqtriError } from "@/lib/errors";
+import { rememberDocId } from "@/lib/chain-sync";
+import { saveAuditSnapshot } from "@/lib/audit-store";
 import { useWallet } from "@/lib/WalletContext";
 import { sha256Hex } from "@/lib/hash";
 import {
@@ -23,14 +27,25 @@ import styles from "./DocWorkspace.module.css";
 
 const STATUSES: NodeStatus[] = ["Planned", "Building", "Built", "Verified"];
 
+type TxState = {
+  phase: "idle" | "pending" | "done" | "error";
+  message: string | null;
+  hash: string | null;
+};
+
 export default function DocWorkspace({ docId }: { docId: string }) {
   const { address } = useWallet();
   const router = useRouter();
   const [doc, setDoc] = useState<VaultDoc | null>(null);
   const [selectedId, setSelectedId] = useState("root");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [tx, setTx] = useState<TxState>({
+    phase: "idle",
+    message: null,
+    hash: null,
+  });
+  const [copied, setCopied] = useState(false);
+  const dragRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     if (!address) return;
@@ -52,6 +67,7 @@ export default function DocWorkspace({ docId }: { docId: string }) {
     (next: VaultDoc) => {
       if (!address) return;
       upsertDoc(address, next);
+      saveAuditSnapshot(next);
       setDoc(next);
     },
     [address],
@@ -83,70 +99,147 @@ export default function DocWorkspace({ docId }: { docId: string }) {
     });
   };
 
+  const clientPoint = (ev: React.PointerEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX;
+    pt.y = ev.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+
+  const onNodePointerDown = (id: string, ev: React.PointerEvent) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    setSelectedId(id);
+    const node = doc?.nodes.find((n) => n.id === id);
+    if (!node) return;
+    const p = clientPoint(ev);
+    dragRef.current = { id, ox: p.x - node.x, oy: p.y - node.y };
+    (ev.target as Element).setPointerCapture?.(ev.pointerId);
+  };
+
+  const onMapPointerMove = (ev: React.PointerEvent) => {
+    if (!dragRef.current || !doc) return;
+    const { id, ox, oy } = dragRef.current;
+    const p = clientPoint(ev);
+    const x = Math.max(40, Math.min(920, p.x - ox));
+    const y = Math.max(40, Math.min(440, p.y - oy));
+    setDoc({
+      ...doc,
+      nodes: doc.nodes.map((n) => (n.id === id ? { ...n, x, y } : n)),
+    });
+  };
+
+  const onMapPointerUp = () => {
+    if (!dragRef.current || !doc || !address) {
+      dragRef.current = null;
+      return;
+    }
+    dragRef.current = null;
+    persist({ ...doc, updatedAt: Date.now() });
+  };
+
+  const runTx = async (
+    label: string,
+    fn: () => Promise<string>,
+    after: (hash: string) => void | Promise<void>,
+  ) => {
+    setTx({ phase: "pending", message: `${label}…`, hash: null });
+    try {
+      const hash = await fn();
+      await after(hash);
+      setTx({
+        phase: "done",
+        message: `${label} confirmed`,
+        hash,
+      });
+    } catch (e) {
+      const msg =
+        e instanceof DoqtriError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Transaction failed";
+      setTx({ phase: "error", message: msg, hash: null });
+    }
+  };
+
   const anchor = async () => {
     if (!doc || !address) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const contentHash = await sha256Hex(doc.markdown);
-      if (!doc.registered) {
-        await registerDocument(address, doc.id, contentHash);
+    const contentHash = await sha256Hex(doc.markdown);
+    const wasRegistered = doc.registered;
+    await runTx(
+      wasRegistered ? "Update" : "Register",
+      () =>
+        wasRegistered
+          ? updateDocument(address, doc.id, contentHash)
+          : registerDocument(address, doc.id, contentHash),
+      async () => {
         const onchain = await getDocument(doc.id);
-        persist({
+        rememberDocId(doc.id);
+        const next: VaultDoc = {
           ...doc,
           registered: true,
           contentHash,
-          version: onchain?.version ?? 1,
+          version: onchain?.version ?? (wasRegistered ? doc.version + 1 : 1),
           updatedAt: Date.now(),
-        });
-        setMsg("Registered on Stellar");
-      } else {
-        await updateDocument(address, doc.id, contentHash);
-        const onchain = await getDocument(doc.id);
-        persist({
-          ...doc,
-          contentHash,
-          version: onchain?.version ?? doc.version + 1,
-          updatedAt: Date.now(),
-        });
-        setMsg(`Updated to v${onchain?.version ?? doc.version + 1}`);
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Anchor failed");
-    } finally {
-      setBusy(false);
-    }
+        };
+        persist(next);
+      },
+    );
   };
 
   const shipNode = async () => {
     if (!doc || !address || !selected) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
+    if (!doc.registered) {
+      setTx({
+        phase: "error",
+        message: "Anchor the document first",
+        hash: null,
+      });
+      return;
+    }
+    await runTx(
+      "Sync node",
+      () =>
+        setNodeStatus(
+          address,
+          doc.id,
+          selected.id,
+          selected.status,
+          selected.tool || "manual",
+          selected.artifactRef || "",
+        ),
+      () => {
+        saveAuditSnapshot(doc);
+      },
+    );
+  };
+
+  const copyAuditUrl = async () => {
+    const url = `${window.location.origin}/d/${docId}`;
     try {
-      if (!doc.registered) {
-        throw new Error("Anchor the document first");
-      }
-      await setNodeStatus(
-        address,
-        doc.id,
-        selected.id,
-        selected.status,
-        selected.tool || "manual",
-        selected.artifactRef || "",
-      );
-      setMsg(`Node “${selected.label}” synced on-chain`);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Ship failed");
-    } finally {
-      setBusy(false);
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setTx({
+        phase: "error",
+        message: "Could not copy URL",
+        hash: null,
+      });
     }
   };
 
   if (!doc) {
     return <div className={styles.workspace} />;
   }
+
+  const busy = tx.phase === "pending";
 
   return (
     <div className={styles.workspace}>
@@ -175,6 +268,9 @@ export default function DocWorkspace({ docId }: { docId: string }) {
             disabled={busy}
             onClick={() => void anchor()}
           >
+            {busy ? (
+              <span className={styles.spinner} aria-hidden />
+            ) : null}
             {doc.registered ? "Update hash" : "Register"}
           </button>
           <span className={styles.status}>
@@ -193,14 +289,20 @@ export default function DocWorkspace({ docId }: { docId: string }) {
       <section className={styles.mapPane}>
         <div className={styles.toolbar}>
           <strong>Mindmap</strong>
-          <span className={styles.status}>{doc.nodes.length} nodes</span>
+          <span className={styles.status}>
+            {doc.nodes.length} nodes · drag to rearrange
+          </span>
         </div>
         <div className={styles.mapWrap}>
           <svg
+            ref={svgRef}
             className={styles.svg}
             viewBox="0 0 960 480"
             role="img"
             aria-label="Plan mindmap"
+            onPointerMove={onMapPointerMove}
+            onPointerUp={onMapPointerUp}
+            onPointerLeave={onMapPointerUp}
           >
             {doc.edges.map((e) => {
               const a = doc.nodes.find((n) => n.id === e.from);
@@ -226,7 +328,7 @@ export default function DocWorkspace({ docId }: { docId: string }) {
                     isSelected ? styles.nodeSelected : ""
                   }`}
                   transform={`translate(${node.x} ${node.y})`}
-                  onClick={() => setSelectedId(node.id)}
+                  onPointerDown={(ev) => onNodePointerDown(node.id, ev)}
                 >
                   <circle
                     className={styles.nodeCircle}
@@ -291,15 +393,54 @@ export default function DocWorkspace({ docId }: { docId: string }) {
                 disabled={busy}
                 onClick={() => void shipNode()}
               >
+                {busy ? (
+                  <span className={styles.spinner} aria-hidden />
+                ) : null}
                 Sync to Stellar
               </button>
             </>
           ) : null}
-          <Link className={styles.audit} href={`/d/${doc.id}`}>
-            Public audit →
-          </Link>
-          {msg ? <p className={`${styles.msg} ${styles.msgOk}`}>{msg}</p> : null}
-          {err ? <p className={`${styles.msg} ${styles.msgErr}`}>{err}</p> : null}
+
+          <div className={styles.shareRow}>
+            <Link className={styles.audit} href={`/d/${doc.id}`}>
+              Public audit →
+            </Link>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={() => void copyAuditUrl()}
+            >
+              {copied ? "Copied" : "Copy audit URL"}
+            </button>
+          </div>
+
+          {tx.phase === "pending" ? (
+            <p className={`${styles.msg} ${styles.msgPending}`}>
+              <span className={styles.spinner} aria-hidden />
+              {tx.message}
+            </p>
+          ) : null}
+          {tx.phase === "done" ? (
+            <p className={`${styles.msg} ${styles.msgOk}`}>
+              {tx.message}
+              {tx.hash ? (
+                <>
+                  {" · "}
+                  <a
+                    className={styles.txLink}
+                    href={expertTxUrl(tx.hash)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View on explorer
+                  </a>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+          {tx.phase === "error" ? (
+            <p className={`${styles.msg} ${styles.msgErr}`}>{tx.message}</p>
+          ) : null}
         </div>
       </aside>
     </div>

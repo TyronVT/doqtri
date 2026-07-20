@@ -3,23 +3,55 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { syncVaultFromChain } from "@/lib/chain-sync";
 import { useWallet } from "@/lib/WalletContext";
-import { createDoc, listDocs, type VaultDoc } from "@/lib/vault-store";
+import {
+  createDoc,
+  ensureChainDoc,
+  listDocs,
+  type VaultDoc,
+} from "@/lib/vault-store";
 import styles from "./VaultHome.module.css";
 
 export default function VaultHome() {
   const { address } = useWallet();
   const router = useRouter();
   const [docs, setDocs] = useState<VaultDoc[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     if (!address) return;
     setDocs(listDocs(address));
   }, [address]);
 
+  const syncFromChain = useCallback(async () => {
+    if (!address) return;
+    setSyncing(true);
+    setSyncNote(null);
+    try {
+      const owned = await syncVaultFromChain(address);
+      for (const stub of owned) {
+        ensureChainDoc(address, stub);
+      }
+      setSyncNote(
+        owned.length
+          ? `Synced ${owned.length} on-chain doc${owned.length === 1 ? "" : "s"}`
+          : "No owned docs found in recent events",
+      );
+      refresh();
+    } catch {
+      setSyncNote("Chain sync failed — showing local vault");
+      refresh();
+    } finally {
+      setSyncing(false);
+    }
+  }, [address, refresh]);
+
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    void syncFromChain();
+  }, [refresh, syncFromChain]);
 
   if (!address) return null;
 
@@ -27,17 +59,29 @@ export default function VaultHome() {
     <div className={styles.page}>
       <div className={styles.head}>
         <h1>Vault</h1>
-        <button
-          type="button"
-          className={styles.newBtn}
-          onClick={() => {
-            const doc = createDoc(address, "Untitled plan");
-            router.push(`/vault/${doc.id}`);
-          }}
-        >
-          New plan
-        </button>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.ghostBtn}
+            disabled={syncing}
+            onClick={() => void syncFromChain()}
+          >
+            {syncing ? "Syncing…" : "Sync from chain"}
+          </button>
+          <button
+            type="button"
+            className={styles.newBtn}
+            onClick={() => {
+              const doc = createDoc(address, "Untitled plan");
+              router.push(`/vault/${doc.id}`);
+            }}
+          >
+            New plan
+          </button>
+        </div>
       </div>
+
+      {syncNote ? <p className={styles.syncNote}>{syncNote}</p> : null}
 
       {docs.length === 0 ? (
         <p className={styles.empty}>

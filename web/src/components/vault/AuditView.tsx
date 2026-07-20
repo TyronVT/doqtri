@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DEMO_EDGES, DEMO_NODES, statusColor, type MindmapNode } from "@/data/demo-map";
+import {
+  DEMO_EDGES,
+  DEMO_NODES,
+  statusColor,
+  type MindmapEdge,
+  type MindmapNode,
+} from "@/data/demo-map";
+import { loadAuditSnapshot } from "@/lib/audit-store";
 import { getDocument, getNode } from "@/lib/soroban";
 import styles from "./AuditView.module.css";
 
@@ -14,34 +21,56 @@ type ChainDoc = {
 
 export default function AuditView({ docId }: { docId: string }) {
   const [chain, setChain] = useState<ChainDoc | null>(null);
-  const [nodes, setNodes] = useState<MindmapNode[]>(DEMO_NODES);
+  const [title, setTitle] = useState(docId);
+  const [nodes, setNodes] = useState<MindmapNode[]>([]);
+  const [edges, setEdges] = useState<MindmapEdge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"snapshot" | "demo" | "minimal">("minimal");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
+        const snap = loadAuditSnapshot(docId);
         const doc = await getDocument(docId);
         if (cancelled) return;
         setChain(doc);
-        // Prefer demo layout when auditing the sample id; otherwise root-only
-        const base =
-          docId === "doqtri-launch-plan"
-            ? DEMO_NODES
-            : [
-                {
-                  id: "root",
-                  label: docId,
-                  x: 480,
-                  y: 120,
-                  status: "Planned" as const,
-                  tool: "",
-                  artifactRef: "",
-                },
-              ];
+
+        let baseNodes: MindmapNode[];
+        let baseEdges: MindmapEdge[];
+        let nextTitle = docId;
+
+        if (snap) {
+          baseNodes = snap.nodes;
+          baseEdges = snap.edges;
+          nextTitle = snap.title;
+          setSource("snapshot");
+        } else if (docId === "doqtri-launch-plan") {
+          baseNodes = DEMO_NODES;
+          baseEdges = DEMO_EDGES;
+          nextTitle = "Doqtri launch plan";
+          setSource("demo");
+        } else {
+          baseNodes = [
+            {
+              id: "root",
+              label: docId,
+              x: 480,
+              y: 120,
+              status: "Planned",
+              tool: "",
+              artifactRef: "",
+            },
+          ];
+          baseEdges = [];
+          setSource("minimal");
+        }
+
+        setTitle(nextTitle);
+
         const enriched = await Promise.all(
-          base.map(async (n) => {
+          baseNodes.map(async (n) => {
             const on = await getNode(docId, n.id);
             if (!on) return n;
             return {
@@ -52,7 +81,10 @@ export default function AuditView({ docId }: { docId: string }) {
             };
           }),
         );
-        if (!cancelled) setNodes(enriched);
+        if (!cancelled) {
+          setNodes(enriched);
+          setEdges(baseEdges);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -62,24 +94,20 @@ export default function AuditView({ docId }: { docId: string }) {
     };
   }, [docId]);
 
-  const edges =
-    docId === "doqtri-launch-plan"
-      ? DEMO_EDGES
-      : [];
-
   return (
     <div className={styles.page}>
       <Link href="/" className={styles.brand}>
         Doqtri
       </Link>
       <div className={styles.top}>
-        <h1>Audit · {docId}</h1>
+        <h1>Audit · {title}</h1>
         <p className={styles.meta}>
           {loading
             ? "loading…"
             : chain
               ? `on-chain v${chain.version} · ${chain.nodeCount} nodes · ${chain.contentHash.slice(0, 16)}…`
               : "not registered on-chain"}
+          {!loading ? ` · map: ${source}` : ""}
         </p>
       </div>
 
