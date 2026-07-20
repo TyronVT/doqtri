@@ -71,6 +71,7 @@ export default function VaultHome() {
           <button
             type="button"
             className={styles.newBtn}
+            data-testid="new-plan"
             onClick={() => {
               const doc = createDoc(address, "Untitled plan");
               router.push(`/vault/${doc.id}`);

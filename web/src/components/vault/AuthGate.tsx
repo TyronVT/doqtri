@@ -26,7 +26,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   if (!address) {
     return (
       <div className={styles.gate}>
-        <h1>Open your vault</h1>
+        <h1 data-testid="vault-gate">Open your vault</h1>
         <p>Log in with Freighter to manage plans on Stellar testnet.</p>
         <button type="button" onClick={() => void connect()}>
           Log in with Freighter

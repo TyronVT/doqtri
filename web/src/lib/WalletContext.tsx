@@ -26,11 +26,17 @@ type WalletContextValue = {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
+const E2E_ADDRESS = process.env.NEXT_PUBLIC_E2E_ADDRESS;
+
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(E2E_ADDRESS ?? null);
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
+    if (E2E_ADDRESS) {
+      setAddress(E2E_ADDRESS);
+      return;
+    }
     initWalletKit();
     const offState = onWalletState((addr) => setAddress(addr ?? null));
     const offDisc = onWalletDisconnect(() => setAddress(null));
