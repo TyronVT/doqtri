@@ -32,6 +32,11 @@
   font-size: 0.875rem;
 }
 
+.gate .error {
+  color: #b42318;
+  font-size: 0.8rem;
+}
+
 .link {
   background: transparent !important;
   color: var(--ink-muted) !important;

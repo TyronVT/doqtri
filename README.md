@@ -90,7 +90,7 @@ worlds drift apart.
 ### Web app (`web/`)
 
 - Dark, Zed-inspired landing with sticky interactive mindmap
-- Freighter login via [Stellar Wallets Kit](https://stellarwalletskit.dev/) (Freighter-only)
+- Multi-wallet connection via [Stellar Wallets Kit](https://stellarwalletskit.dev/) (Freighter, Albedo, Hana, Lobstr, Rabet, xBull, Klever, OneKey, and Bitget)
 - **Vault**: local plans + **sync from chain** (contract events / owner filter)
 - Markdown → mindmap with nested `##` / `###` / `####`, drag nodes, layout persisted
 - **Tx UX**: pending spinner, Stellar Expert link, clear Freighter / funding / network errors
@@ -193,7 +193,7 @@ doqtri/
 
 ## Quick start — web
 
-Prerequisites: Node 20+, [Freighter](https://freighter.app/) (for Log in).
+Prerequisites: Node 20+ and a supported Stellar wallet (such as [Freighter](https://freighter.app/)).
 
 ```bash
 cd web
@@ -203,7 +203,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-- **Log in** → Freighter → redirects to **`/vault`**
+- **Connect wallet** → choose a supported Stellar wallet → redirects to **`/vault`**
 - Create a plan → write markdown (`##` / `###` headings become nested nodes) → **Register** / **Update hash**
 - Select a node → set status/tool/artifact → **Sync to Stellar** (explorer link on success)
 - **Copy audit URL** or share **`/d/[docId]`** for public audit

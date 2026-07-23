@@ -1,3 +1,8 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -19,6 +24,23 @@
 .btn:disabled {
   opacity: 0.55;
   cursor: wait;
+}
+
+.error {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(20rem, 80vw);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: #b42318;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 10%);
 }
 
 .addr {
