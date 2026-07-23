@@ -108,7 +108,6 @@ export const DoqtriRegistry = {
   async getDocument(docId: string): Promise<ChainDocument | null> {
     try {
       const tx = await readClient().get_document({ doc_id: docId });
-      if (tx.simulation?.error) return null;
       const doc = unwrapResult<{
         version: number;
         node_count: number;
@@ -134,7 +133,6 @@ export const DoqtriRegistry = {
         doc_id: docId,
         node_id: nodeId,
       });
-      if (tx.simulation?.error) return null;
       const node = unwrapResult<{
         status: ContractNodeStatus;
         tool: string;

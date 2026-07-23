@@ -45,23 +45,17 @@ export type ContractNodeStatus =
   | { tag: "Built"; values: void }
   | { tag: "Verified"; values: void };
 
-export interface Client {
-  get_node: (
-    { doc_id, node_id }: { doc_id: string; node_id: string },
+export class Client extends ContractClient {
+  declare get_node: (
+    args: { doc_id: string; node_id: string },
     options?: MethodOptions,
   ) => Promise<AssembledTransaction<Result<NodeRecord>>>;
-  get_document: (
-    { doc_id }: { doc_id: string },
+  declare get_document: (
+    args: { doc_id: string },
     options?: MethodOptions,
   ) => Promise<AssembledTransaction<Result<Document>>>;
-  set_node_status: (
-    {
-      doc_id,
-      node_id,
-      status,
-      tool,
-      artifact_ref,
-    }: {
+  declare set_node_status: (
+    args: {
       doc_id: string;
       node_id: string;
       status: ContractNodeStatus;
@@ -70,21 +64,14 @@ export interface Client {
     },
     options?: MethodOptions,
   ) => Promise<AssembledTransaction<Result<void>>>;
-  update_document: (
-    { doc_id, new_hash }: { doc_id: string; new_hash: Buffer },
+  declare update_document: (
+    args: { doc_id: string; new_hash: Buffer },
     options?: MethodOptions,
   ) => Promise<AssembledTransaction<Result<u32>>>;
-  register_document: (
-    {
-      owner,
-      doc_id,
-      content_hash,
-    }: { owner: string; doc_id: string; content_hash: Buffer },
+  declare register_document: (
+    args: { owner: string; doc_id: string; content_hash: Buffer },
     options?: MethodOptions,
   ) => Promise<AssembledTransaction<Result<u32>>>;
-}
-
-export class Client extends ContractClient {
   constructor(public readonly options: ContractClientOptions) {
     super(
       new ContractSpec([

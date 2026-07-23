@@ -153,7 +153,7 @@ export function compileMindmap(
   });
 
   // Re-spread default x for nodes without a prior layout (fresh siblings)
-  for (const [parentId, kids] of childrenOf) {
+  for (const [, kids] of childrenOf) {
     if (kids.length === 0) continue;
     kids.forEach((kidId, idx) => {
       const node = nodes.find((n) => n.id === kidId);

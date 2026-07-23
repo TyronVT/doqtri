@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
-  connectFreighter,
+  connectWallet,
   disconnectWallet,
   initWalletKit,
   onWalletDisconnect,
@@ -20,6 +20,7 @@ import {
 type WalletContextValue = {
   address: string | null;
   connecting: boolean;
+  error: string | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
 };
@@ -31,6 +32,7 @@ const E2E_ADDRESS = process.env.NEXT_PUBLIC_E2E_ADDRESS;
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(E2E_ADDRESS ?? null);
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (E2E_ADDRESS) {
@@ -48,11 +50,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(async () => {
     setConnecting(true);
+    setError(null);
     try {
-      const addr = await connectFreighter();
+      const addr = await connectWallet();
       setAddress(addr);
     } catch (err) {
-      console.error(err);
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Wallet connection was cancelled or could not be completed.";
+      setError(message);
       throw err;
     } finally {
       setConnecting(false);
@@ -60,13 +67,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disconnect = useCallback(async () => {
+    setError(null);
     await disconnectWallet();
     setAddress(null);
   }, []);
 
   const value = useMemo(
-    () => ({ address, connecting, connect, disconnect }),
-    [address, connecting, connect, disconnect],
+    () => ({ address, connecting, error, connect, disconnect }),
+    [address, connecting, error, connect, disconnect],
   );
 
   return (

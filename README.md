@@ -89,12 +89,16 @@ worlds drift apart.
 
 ### Web app (`web/`)
 
-- Dark, Cursor-inspired landing with sticky interactive mindmap
+- Dark, Zed-inspired landing with sticky interactive mindmap
 - Freighter login via [Stellar Wallets Kit](https://stellarwalletskit.dev/) (Freighter-only)
-- **Vault** (Obsidian-like): create plans, markdown editor, mindmap from `##` headings
-- **Ship panel**: register / update content hash + sync node status with Freighter-signed txs
-- **Public audit** at `/d/[docId]`
-- Live Soroban reads against the deployed testnet contract
+- **Vault**: local plans + **sync from chain** (contract events / owner filter)
+- Markdown → mindmap with nested `##` / `###` / `####`, drag nodes, layout persisted
+- **Tx UX**: pending spinner, Stellar Expert link, clear Freighter / funding / network errors
+- **Ship panel**: funded-account check, idempotent register→update, Freighter-signed writes
+- **Public audit** at `/d/[docId]` from vault snapshot (not demo-only) + copy audit URL
+- Typed contract client from WASM bindings (`web/src/lib/bindings/`)
+- Env-only `NEXT_PUBLIC_CONTRACT_ID` in production (see `web/.env.example`)
+- CI: `npm ci && npm run build` + Playwright smoke (vault gate, create doc)
 
 ---
 
@@ -200,13 +204,15 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 - **Log in** → Freighter → redirects to **`/vault`**
-- Create a plan → write markdown (`##` headings become nodes) → **Register** / **Update hash**
-- Select a node → set status/tool/artifact → **Sync to Stellar**
-- Share **`/d/[docId]`** for public audit
+- Create a plan → write markdown (`##` / `###` headings become nested nodes) → **Register** / **Update hash**
+- Select a node → set status/tool/artifact → **Sync to Stellar** (explorer link on success)
+- **Copy audit URL** or share **`/d/[docId]`** for public audit
 
 ```bash
-npm run build   # production build
-npm run start   # serve production build
+cp .env.example .env.local   # set NEXT_PUBLIC_CONTRACT_ID
+npm run build                # production build
+npm run start
+npm run test:e2e             # Playwright smoke (after build)
 ```
 
 ---

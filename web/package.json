@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
-    "bindings": "echo 'Regenerate: stellar contract bindings typescript --wasm ../target/wasm32v1-none/release/doqtri_registry.wasm --output-dir src/lib/generated/doqtri-registry --overwrite'"
+    "bindings": "echo 'Regenerate: stellar contract bindings typescript --wasm ../target/wasm32v1-none/release/doqtri_registry.wasm --output-dir generated/doqtri-registry --overwrite && sync into src/lib/bindings/doqtri-registry.ts'"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.5.0",
@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@playwright/test": "^1.54.1",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

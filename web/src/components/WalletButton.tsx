@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/WalletContext";
 import { shortenAddress } from "@/lib/wallet";
@@ -11,9 +11,8 @@ type Props = {
 };
 
 export default function WalletButton({ redirectToVault = false }: Props) {
-  const { address, connecting, connect, disconnect } = useWallet();
+  const { address, connecting, error, connect, disconnect } = useWallet();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
 
   if (address) {
     return (
@@ -29,21 +28,24 @@ export default function WalletButton({ redirectToVault = false }: Props) {
   }
 
   return (
-    <button
-      type="button"
-      className={styles.btn}
-      disabled={connecting}
-      title={error ?? "Log in with Freighter"}
-      onClick={() => {
-        setError(null);
-        void connect()
-          .then(() => {
-            if (redirectToVault) router.push("/vault");
-          })
-          .catch(() => setError("Install Freighter to log in"));
-      }}
-    >
-      {connecting ? "…" : "Log in"}
-    </button>
+    <div className={styles.wrapper}>
+      <button
+        type="button"
+        className={styles.btn}
+        disabled={connecting}
+        aria-label="Connect Stellar wallet"
+        title={error ?? "Connect a Stellar wallet"}
+        onClick={() => {
+          void connect()
+            .then(() => {
+              if (redirectToVault) router.push("/vault");
+            })
+            .catch(() => undefined);
+        }}
+      >
+        {connecting ? "Connecting…" : "Connect wallet"}
+      </button>
+      {error ? <span className={styles.error} role="alert">{error}</span> : null}
+    </div>
   );
 }

@@ -1,10 +1,7 @@
 "use client";
 
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
-import {
-  FREIGHTER_ID,
-  FreighterModule,
-} from "@creit.tech/stellar-wallets-kit/modules/freighter";
+import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils";
 import {
   KitEventType,
   Networks,
@@ -17,18 +14,16 @@ let ready = false;
 export function initWalletKit() {
   if (ready || typeof window === "undefined") return;
   StellarWalletsKit.init({
-    modules: [new FreighterModule()],
-    selectedWalletId: FREIGHTER_ID,
+    modules: defaultModules(),
     network: Networks.TESTNET,
     theme: SwkAppDarkTheme,
   });
   ready = true;
 }
 
-export async function connectFreighter(): Promise<string> {
+export async function connectWallet(): Promise<string> {
   initWalletKit();
-  StellarWalletsKit.setWallet(FREIGHTER_ID);
-  const { address } = await StellarWalletsKit.fetchAddress();
+  const { address } = await StellarWalletsKit.authModal();
   return address;
 }
 
